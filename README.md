@@ -26,6 +26,17 @@ Exam Simulator - NB lets you:
 - flag or tag selected questions after the exam
 - keep simulation history locally without polluting normal Anki tags
 
+## Screenshots
+
+### Exam Setup
+![Exam setup](screenshots/launcher.png)
+
+### Exam Interface
+![Exam interface](screenshots/exam-interface.png)
+
+### Results Review
+![Results review](screenshots/results.png)
+
 ## Main Features
 
 ### Exam Builder
