@@ -28,14 +28,14 @@ Exam Simulator - NB lets you:
 
 ## Screenshots
 
-### Exam Setup
-![Exam setup](screenshots/launcher.png)
-
 ### Exam Interface
 ![Exam interface](screenshots/exam-interface.png)
 
 ### Results Review
 ![Results review](screenshots/results.png)
+
+### Exam Setup
+![Exam setup](screenshots/launcher.png)
 
 ## Main Features
 
