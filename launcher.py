@@ -184,7 +184,7 @@ class CardPickerDialog(QDialog):
             "QListWidget::indicator { width: 20px; height: 20px; }"
         )
         self.tag_list.itemChanged.connect(self._on_tag_changed)
-        self.tag_list.itemClicked.connect(lambda item: self._toggle_checkable_list_item(self.tag_list, item, self._on_tag_changed))
+        self.tag_list.viewport().installEventFilter(self)
         tv.addWidget(self.tag_list)
         self._filter_stack.addWidget(tag_widget)
 
@@ -214,7 +214,7 @@ class CardPickerDialog(QDialog):
             "QListWidget::indicator { width: 20px; height: 20px; }"
         )
         self.exam_tag_list.itemChanged.connect(self._on_exam_tag_changed)
-        self.exam_tag_list.itemClicked.connect(lambda item: self._toggle_checkable_list_item(self.exam_tag_list, item, self._on_exam_tag_changed))
+        self.exam_tag_list.viewport().installEventFilter(self)
         etv.addWidget(self.exam_tag_list)
         self._filter_stack.addWidget(exam_tag_widget)
 
@@ -298,7 +298,7 @@ class CardPickerDialog(QDialog):
             "QListWidget::indicator { width: 20px; height: 20px; }"
         )
         self.result_list.viewport().installEventFilter(self)
-        self.result_list.itemChanged.connect(self._on_item_changed)
+        self.result_list.itemChanged.connect(self._on_result_item_changed)
         self.result_list.currentItemChanged.connect(self._on_preview_item)
         self._list_preview_splitter.addWidget(self.result_list)
 
@@ -541,26 +541,44 @@ class CardPickerDialog(QDialog):
         self._filter_stack.setCurrentIndex(index)
 
     def eventFilter(self, obj, event):
-        if obj is self.result_list.viewport() and event.type() == QEvent.Type.MouseButtonRelease:
-            item = self.result_list.itemAt(event.pos())
-            if item is not None:
-                rect = self.result_list.visualItemRect(item)
-                checkbox_zone = rect.left() + 28
-                if event.pos().x() > checkbox_zone:
-                    self._toggle_result_item(item)
-                    self.result_list.setCurrentItem(item)
-                    return True
+        if event.type() == QEvent.Type.MouseButtonRelease:
+            if obj is self.result_list.viewport():
+                item = self.result_list.itemAt(event.pos())
+                if item is not None:
+                    rect = self.result_list.visualItemRect(item)
+                    indicator_zone = rect.left() + 28
+                    if event.pos().x() > indicator_zone:
+                        self.result_list.blockSignals(True)
+                        new_state = (Qt.CheckState.Unchecked
+                                     if item.checkState() == Qt.CheckState.Checked
+                                     else Qt.CheckState.Checked)
+                        item.setCheckState(new_state)
+                        self.result_list.blockSignals(False)
+                        self._on_result_item_changed(item)
+                        self.result_list.setCurrentItem(item)
+                        return True
+            elif obj in (self.tag_list.viewport(), self.exam_tag_list.viewport()):
+                list_widget = self.tag_list if obj is self.tag_list.viewport() else self.exam_tag_list
+                item = list_widget.itemAt(event.pos())
+                if item is not None:
+                    rect = list_widget.visualItemRect(item)
+                    indicator_zone = rect.left() + 28
+                    if event.pos().x() > indicator_zone:
+                        self._toggle_checkable_item(list_widget, item)
+                        return True
         return super().eventFilter(obj, event)
 
-    def _toggle_checkable_list_item(self, list_widget, item, on_change):
-        """Clicking anywhere on a row toggles its checkbox."""
+    def _toggle_checkable_item(self, list_widget, item):
         list_widget.blockSignals(True)
         new_state = (Qt.CheckState.Unchecked
                      if item.checkState() == Qt.CheckState.Checked
                      else Qt.CheckState.Checked)
         item.setCheckState(new_state)
         list_widget.blockSignals(False)
-        on_change()
+        if list_widget is self.tag_list:
+            self._on_tag_changed()
+        elif list_widget is self.exam_tag_list:
+            self._on_exam_tag_changed()
 
     def _clear_active_filter_chips(self):
         while self._active_filters_layout.count():
@@ -639,23 +657,35 @@ class CardPickerDialog(QDialog):
         visible.sort(key=lambda x: x[1]["preview"])
         self._rebuild_list(visible)
 
+    def _result_item_label(self, nid, meta):
+        flag_str = f"[{FLAG_DEFS[meta['flag']-1][1]}] " if meta["flag"] > 0 else ""
+        tag_str = ""
+        if meta["tags"]:
+            tag_str = "  🏷 " + ", ".join(meta["tags"][:3])
+            if len(meta["tags"]) > 3:
+                tag_str += "…"
+        return f"{flag_str}{meta['preview']}   〔{meta['deck']}〕{tag_str}"
+
+    def _sync_result_item(self, item):
+        nid = item.data(Qt.ItemDataRole.UserRole)
+        meta = self._note_meta.get(nid)
+        if meta is None:
+            return
+        item.setText(self._result_item_label(nid, meta))
+        item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+        item.setCheckState(
+            Qt.CheckState.Checked if nid in self._selected else Qt.CheckState.Unchecked
+        )
+
     def _rebuild_list(self, items):
         self.result_list.blockSignals(True)
         self.result_list.clear()
         for nid, meta in items:
-            is_sel   = nid in self._selected
-            flag_str = f"[{FLAG_DEFS[meta['flag']-1][1]}] " if meta["flag"] > 0 else ""
-            tag_str  = ""
-            if meta["tags"]:
-                tag_str = "  🏷 " + ", ".join(meta["tags"][:3])
-                if len(meta["tags"]) > 3:
-                    tag_str += "…"
-            label = f"{flag_str}{meta['preview']}   〔{meta['deck']}〕{tag_str}"
-            item  = QListWidgetItem(label)
+            item = QListWidgetItem(self._result_item_label(nid, meta))
             item.setData(Qt.ItemDataRole.UserRole, nid)
             item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
             item.setCheckState(
-                Qt.CheckState.Checked if is_sel else Qt.CheckState.Unchecked
+                Qt.CheckState.Checked if nid in self._selected else Qt.CheckState.Unchecked
             )
             self.result_list.addItem(item)
         self.result_list.blockSignals(False)
@@ -664,7 +694,7 @@ class CardPickerDialog(QDialog):
 
     # ── Selection ─────────────────────────────────────────────────────────────
 
-    def _on_item_changed(self, item):
+    def _on_result_item_changed(self, item):
         nid = item.data(Qt.ItemDataRole.UserRole)
         if item.checkState() == Qt.CheckState.Checked:
             self._selected.add(nid)
@@ -792,20 +822,6 @@ class CardPickerDialog(QDialog):
             layout.insertWidget(
                 layout.count() - 1, lbl("Could not parse this card.", size=12)
             )
-
-    def _toggle_result_item(self, item):
-        self.result_list.blockSignals(True)
-        new_state = (Qt.CheckState.Unchecked
-                     if item.checkState() == Qt.CheckState.Checked
-                     else Qt.CheckState.Checked)
-        item.setCheckState(new_state)
-        self.result_list.blockSignals(False)
-        nid = item.data(Qt.ItemDataRole.UserRole)
-        if new_state == Qt.CheckState.Checked:
-            self._selected.add(nid)
-        else:
-            self._selected.discard(nid)
-        self._refresh_count()
 
     def _confirm(self):
         if not self._selected:

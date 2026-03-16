@@ -7,8 +7,7 @@ Top  : topbar with title, timer, submit button
 """
 
 import json
-
-from PyQt6.QtCore import QObject, pyqtSlot
+from PyQt6.QtCore import QObject, QTimer, pyqtSlot
 from PyQt6.QtWebChannel import QWebChannel
 from PyQt6.QtWidgets import QMainWindow
 from aqt.qt import Qt
@@ -37,57 +36,27 @@ class _Bridge(QObject):
 
     @pyqtSlot()
     def closeExam(self):
-        self._win.close()
+        QTimer.singleShot(0, self._win.close)
 
     @pyqtSlot()
     def takeAnotherExam(self):
-        self._win._take_another_exam()
+        QTimer.singleShot(0, self._win._take_another_exam)
 
     @pyqtSlot(str, str)
     def tagNotes(self, nids_json: str, tag: str):
-        """Tag notes — runs safely on main thread."""
         try:
-            nids      = json.loads(nids_json)
-            clean_tag = tag.strip().replace(" ", "_")
-            if not clean_tag or not nids:
-                return
-
-            def _do():
-                for nid in nids:
-                    try:
-                        note = mw.col.get_note(int(nid))
-                        note.add_tag(clean_tag)
-                        mw.col.update_note(note)
-                    except Exception:
-                        pass
-                mw.col.reset()
-
-            mw.taskman.run_on_main(_do)
+            nids = json.loads(nids_json)
         except Exception:
-            pass
+            nids = []
+        self._win._tag_notes(nids, tag)
 
     @pyqtSlot(str, int)
     def flagNotes(self, nids_json: str, flag_num: int):
-        """Flag cards — runs safely on main thread."""
         try:
             nids = json.loads(nids_json)
-            if not nids:
-                return
-
-            def _do():
-                for nid in nids:
-                    try:
-                        note = mw.col.get_note(int(nid))
-                        for card in note.cards():
-                            card.set_user_flag(flag_num)
-                            card.flush()
-                    except Exception:
-                        pass
-                mw.col.reset()
-
-            mw.taskman.run_on_main(_do)
         except Exception:
-            pass
+            nids = []
+        self._win._flag_notes(nids, flag_num)
 
 
 # ── Main window ───────────────────────────────────────────────────────────────
@@ -112,11 +81,19 @@ class ExamWindow(QMainWindow):
         self._channel = QWebChannel()
         self._bridge  = _Bridge(self)
         self._channel.registerObject("pybridge", self._bridge)
-        self._web.page().setWebChannel(self._channel)
+        self._web.loadFinished.connect(self._rebind_webchannel)
+        self._rebind_webchannel()
 
         self._web.setHtml(self._build_exam_html())
 
     # ── Callbacks ─────────────────────────────────────────────────────────────
+
+    def _rebind_webchannel(self, *_args):
+        try:
+            self._web.page().setWebChannel(self._channel)
+        except Exception:
+            pass
+
 
     def _take_another_exam(self):
         from .launcher import LauncherDialog
@@ -124,6 +101,62 @@ class ExamWindow(QMainWindow):
         self.close()
         dlg = LauncherDialog(mw)
         dlg.exec()
+
+    def _tag_notes(self, nids, tag):
+        try:
+            clean_tag = str(tag).strip().replace(" ", "_")
+            ids = [int(nid) for nid in nids if str(nid).strip()]
+        except Exception:
+            return
+        if not clean_tag or not ids:
+            return
+        changed = False
+        for nid in ids:
+            try:
+                note = mw.col.get_note(int(nid))
+                note.add_tag(clean_tag)
+                note.flush()
+                changed = True
+            except Exception:
+                pass
+        if changed:
+            try:
+                mw.col.setMod()
+            except Exception:
+                pass
+            try:
+                mw.reset()
+            except Exception:
+                pass
+
+    def _flag_notes(self, nids, flag_num):
+        try:
+            ids = [int(nid) for nid in nids if str(nid).strip()]
+            flag_num = int(flag_num)
+        except Exception:
+            return
+        if not ids:
+            return
+        changed = False
+        for nid in ids:
+            try:
+                note = mw.col.get_note(int(nid))
+                for card in note.cards():
+                    card.set_user_flag(flag_num)
+                    card.flush()
+                    changed = True
+            except Exception:
+                pass
+        if changed:
+            try:
+                mw.col.setMod()
+            except Exception:
+                pass
+            try:
+                mw.reset()
+            except Exception:
+                pass
+
 
     def _on_submit(self, answers_dict: dict):
         from .history_store import record_simulation
@@ -136,6 +169,7 @@ class ExamWindow(QMainWindow):
         results = compute_score(self.questions, answers_dict, self.scoring)
         results["exam_name"] = self.exam_name
         self._web.setHtml(build_results_html(results))
+        self._rebind_webchannel()
 
     # ── HTML builders ─────────────────────────────────────────────────────────
 
@@ -212,7 +246,7 @@ let fontSize      = 14;
 let _modalResolve = null;
 
 new QWebChannel(qt.webChannelTransport, ch => {{
-  pybridge = ch.objects.pybridge;
+  pybridge = ch.objects.pybridge || null;
 }});
 
 /* ── Questions ──────────────────────────────────────────────────────────── */
