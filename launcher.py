@@ -6,8 +6,9 @@ from aqt import mw
 from aqt.qt import (
     QAbstractItemView, QButtonGroup, QCheckBox, QComboBox, QDialog,
     QEvent, QFormLayout, QFrame, QGroupBox, QHBoxLayout, QLabel, QLineEdit,
-    QListWidget, QListWidgetItem, QMessageBox, QPushButton, QScrollArea,
-    QSpinBox, QSplitter, QStackedWidget, QTreeWidget, QTreeWidgetItem,
+    QInputDialog, QListWidget, QListWidgetItem, QMessageBox, QPushButton, QScrollArea,
+    QSpinBox, QSplitter, QStackedWidget, QTableWidget,
+    QTreeWidget, QTreeWidgetItem,
     QVBoxLayout, QWidget, Qt,
 )
 
@@ -24,10 +25,59 @@ FLAG_DEFS = [
     (7, "Purple",    "#a855f7"),
 ]
 
+MULTI_SELECT_TAGS = {
+    "multi-choice", "multichoice", "multi-select", "multiselect",
+    "multiple-select", "multiple-response", "多选",
+}
+SINGLE_SELECT_TAGS = {
+    "single-choice", "singlechoice", "single-select", "singleselect",
+    "单选",
+}
+TRUE_FALSE_TAGS = {
+    "true-false", "truefalse", "tf", "判断", "是非",
+}
+
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
 def _strip_html(text: str) -> str:
     return re.sub(r"<[^>]+>", "", text).strip()
+
+
+def _note_tag_tokens(note):
+    tokens = set()
+    for tag in getattr(note, "tags", []):
+        normalized = str(tag).strip().lower().replace("_", "-")
+        if not normalized:
+            continue
+        tokens.add(normalized)
+        tokens.update(part for part in normalized.split("::") if part)
+    return tokens
+
+
+def _normalize_option_text(text: str) -> str:
+    return re.sub(r"[\s\.\。:：;；,，、()（）\[\]【】]+", "", text).lower()
+
+
+def _is_true_false_question(question):
+    if len(question["options"]) != 2 or len(question["correct"]) != 1:
+        return False
+    values = {_normalize_option_text(text) for text in question["options"].values()}
+    true_false_sets = [
+        {"对", "错"},
+        {"正确", "错误"},
+        {"true", "false"},
+        {"t", "f"},
+        {"yes", "no"},
+    ]
+    return values in true_false_sets
+
+
+def _answer_mode(correct, tag_tokens):
+    if tag_tokens & (SINGLE_SELECT_TAGS | TRUE_FALSE_TAGS):
+        return "single"
+    if tag_tokens & MULTI_SELECT_TAGS:
+        return "multi"
+    return "multi" if len(correct) > 1 else "single"
 
 
 def _parse_note(note, note_type_name):
@@ -70,13 +120,20 @@ def _parse_note(note, note_type_name):
             explanation = note["Explanation"].strip()   # keep HTML for rendering
         except Exception:
             pass
-        return {
+        tag_tokens = _note_tag_tokens(note)
+        parsed = {
             "question":    question,
             "options":     options,
             "correct":     sorted(correct),
             "source":      source,
             "explanation": explanation,
+            "answer_mode": _answer_mode(correct, tag_tokens),
         }
+        parsed["is_true_false"] = (
+            len(options) == 2
+            and bool((tag_tokens & TRUE_FALSE_TAGS) or _is_true_false_question(parsed))
+        )
+        return parsed
     except Exception:
         return None
 
@@ -102,6 +159,48 @@ def _smart_sample(note_ids_with_meta, limit):
         result.append(buckets[i].pop(0))
         idx += 1
     return result[:limit]
+
+
+def _tagged_sample(note_ids, note_meta, rules, shuffle_groups=False):
+    selected = []
+    used = set()
+    shortages = []
+
+    for tag, limit in rules:
+        candidates = [
+            (nid, note_meta.get(nid, {"deck": ""}))
+            for nid in note_ids
+            if nid not in used and tag in note_meta.get(nid, {}).get("tags", [])
+        ]
+        if shuffle_groups:
+            random.shuffle(candidates)
+        sampled = _smart_sample(candidates, limit)
+        if shuffle_groups:
+            random.shuffle(sampled)
+        selected.extend(sampled)
+        used.update(sampled)
+        if len(sampled) < limit:
+            shortages.append((tag, limit, len(sampled)))
+
+    return selected, shortages
+
+
+def _shuffle_question_options(question):
+    if question.get("is_true_false"):
+        return
+    items = list(question["options"].items())
+    random.shuffle(items)
+    letters = ["A", "B", "C", "D", "E"]
+    mapping = {}
+    shuffled_options = {}
+    for idx, (old_letter, text) in enumerate(items):
+        new_letter = letters[idx]
+        mapping[old_letter] = new_letter
+        shuffled_options[new_letter] = text
+    question["options"] = shuffled_options
+    question["correct"] = sorted(
+        mapping[letter] for letter in question["correct"] if letter in mapping
+    )
 
 
 # ── Card Picker Dialog ────────────────────────────────────────────────────────
@@ -843,11 +942,14 @@ class LauncherDialog(QDialog):
     def __init__(self, parent):
         super().__init__(parent)
         self.setWindowTitle("Exam Simulator — Setup")
-        self.setMinimumWidth(480)
+        self.setMinimumSize(480, 360)
         self._picked_ids  = []
         self._picked_meta = {}   # nid -> meta (for smart sampling)
         self._note_type_names = []
+        self._picked_tags = []
+        self._composition_presets = []
         self._build_ui()
+        self._fit_to_screen()
 
     def _populate_note_types(self):
         self._note_type_names = []
@@ -860,8 +962,17 @@ class LauncherDialog(QDialog):
             self._note_type_names = [DEFAULT_NOTE_TYPE]
 
     def _build_ui(self):
-        layout = QVBoxLayout(self)
+        root_layout = QVBoxLayout(self)
+        root_layout.setSpacing(8)
+
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        content = QWidget()
+        layout = QVBoxLayout(content)
         layout.setSpacing(12)
+        scroll.setWidget(content)
+        root_layout.addWidget(scroll, 1)
 
         self._populate_note_types()
 
@@ -922,6 +1033,65 @@ class LauncherDialog(QDialog):
         limit_row.addStretch()
         self.limit_check.toggled.connect(self.limit_spin.setEnabled)
         q_layout.addLayout(limit_row)
+
+        comp_group = QGroupBox("Tag Composition")
+        comp_layout = QVBoxLayout(comp_group)
+        self.composition_check = QCheckBox("Build exam by tag quotas")
+        self.composition_check.toggled.connect(self._toggle_composition)
+        comp_layout.addWidget(self.composition_check)
+
+        preset_row = QHBoxLayout()
+        preset_row.addWidget(QLabel("Preset"))
+        self.preset_combo = QComboBox()
+        self.load_preset_btn = QPushButton("Load")
+        self.save_preset_btn = QPushButton("Save current")
+        self.delete_preset_btn = QPushButton("Delete")
+        self.load_preset_btn.clicked.connect(self._load_selected_preset)
+        self.save_preset_btn.clicked.connect(self._save_current_preset)
+        self.delete_preset_btn.clicked.connect(self._delete_selected_preset)
+        preset_row.addWidget(self.preset_combo, 1)
+        preset_row.addWidget(self.load_preset_btn)
+        preset_row.addWidget(self.save_preset_btn)
+        preset_row.addWidget(self.delete_preset_btn)
+        comp_layout.addLayout(preset_row)
+
+        comp_help = QLabel(
+            "Each row selects questions with that tag. Row order becomes exam order."
+        )
+        comp_help.setWordWrap(True)
+        comp_help.setStyleSheet("color:#64748b;font-size:12px;")
+        comp_layout.addWidget(comp_help)
+
+        self.composition_table = QTableWidget(0, 2)
+        self.composition_table.setHorizontalHeaderLabels(["Tag", "Count"])
+        self.composition_table.horizontalHeader().setStretchLastSection(True)
+        self.composition_table.setSelectionBehavior(
+            QAbstractItemView.SelectionBehavior.SelectRows)
+        self.composition_table.setSelectionMode(
+            QAbstractItemView.SelectionMode.SingleSelection)
+        self.composition_table.setEnabled(False)
+        self.composition_table.setMinimumHeight(120)
+        self.composition_table.setMaximumHeight(180)
+        comp_layout.addWidget(self.composition_table)
+
+        comp_btns = QHBoxLayout()
+        self.add_rule_btn = QPushButton("Add row")
+        self.remove_rule_btn = QPushButton("Remove row")
+        self.move_rule_up_btn = QPushButton("Move up")
+        self.move_rule_down_btn = QPushButton("Move down")
+        for btn in (
+            self.add_rule_btn, self.remove_rule_btn,
+            self.move_rule_up_btn, self.move_rule_down_btn,
+        ):
+            btn.setEnabled(False)
+            comp_btns.addWidget(btn)
+        comp_btns.addStretch()
+        self.add_rule_btn.clicked.connect(self._add_composition_row)
+        self.remove_rule_btn.clicked.connect(self._remove_composition_row)
+        self.move_rule_up_btn.clicked.connect(lambda: self._move_composition_row(-1))
+        self.move_rule_down_btn.clicked.connect(lambda: self._move_composition_row(1))
+        comp_layout.addLayout(comp_btns)
+        q_layout.addWidget(comp_group)
         layout.addWidget(q_group)
 
         # ── Timer ───────────────────────────────────────────────────────────
@@ -954,7 +1124,8 @@ class LauncherDialog(QDialog):
         layout.addWidget(score_group)
 
         # ── Shuffle ─────────────────────────────────────────────────────────
-        self.shuffle_check = QCheckBox("Shuffle question order")
+        self.shuffle_check = QCheckBox(
+            "Shuffle question and option order (questions stay within tag groups when using tag composition)")
         self.shuffle_check.setChecked(True)
         layout.addWidget(self.shuffle_check)
 
@@ -969,9 +1140,23 @@ class LauncherDialog(QDialog):
         self.start_btn.clicked.connect(self._start)
         btn_layout.addWidget(cancel_btn)
         btn_layout.addWidget(self.start_btn)
-        layout.addLayout(btn_layout)
+        root_layout.addLayout(btn_layout)
+
+        self._reload_composition_presets()
 
     # ─────────────────────────────────────────────────────────────────────────
+
+    def _fit_to_screen(self):
+        try:
+            screen = self.screen()
+            available = screen.availableGeometry() if screen else None
+            if not available:
+                return
+            max_height = max(self.minimumHeight(), available.height() - 80)
+            self.setMaximumHeight(max_height)
+            self.resize(560, min(720, max_height))
+        except Exception:
+            pass
 
     def _open_picker(self):
         nt = self.note_type_combo.currentText().strip() or DEFAULT_NOTE_TYPE
@@ -979,13 +1164,177 @@ class LauncherDialog(QDialog):
         if dlg.exec():
             self._picked_ids  = dlg.selected_note_ids()
             self._picked_meta = dlg.note_meta()
+            self._picked_tags = self._available_picked_tags()
             n = len(self._picked_ids)
             self.pick_label.setText(
                 f"{n} question{'s' if n != 1 else ''} selected.")
             self.pick_label.setStyleSheet(
                 "color:#16a34a;font-weight:bold;")
             self.limit_spin.setMaximum(n)
+            self._refresh_composition_tag_options()
             self.start_btn.setEnabled(True)
+
+    def _available_picked_tags(self):
+        tags = set()
+        for nid in self._picked_ids:
+            tags.update(self._picked_meta.get(nid, {}).get("tags", []))
+        return sorted(tag for tag in tags if tag)
+
+    def _toggle_composition(self, checked):
+        self.composition_table.setEnabled(checked)
+        for btn in (
+            self.add_rule_btn, self.remove_rule_btn,
+            self.move_rule_up_btn, self.move_rule_down_btn,
+        ):
+            btn.setEnabled(checked)
+        self.limit_check.setEnabled(not checked)
+        self.limit_spin.setEnabled((not checked) and self.limit_check.isChecked())
+        if checked and self.composition_table.rowCount() == 0:
+            self._add_composition_row()
+
+    def _make_tag_combo(self, current_text=""):
+        combo = QComboBox()
+        combo.addItems(self._picked_tags)
+        if current_text:
+            idx = combo.findText(current_text)
+            if idx < 0:
+                combo.addItem(current_text)
+                idx = combo.findText(current_text)
+            if idx >= 0:
+                combo.setCurrentIndex(idx)
+        return combo
+
+    def _make_count_spin(self, value=1):
+        spin = QSpinBox()
+        spin.setRange(1, max(1, len(self._picked_ids)))
+        spin.setValue(max(1, int(value)))
+        return spin
+
+    def _add_composition_row(self):
+        row = self.composition_table.rowCount()
+        self.composition_table.insertRow(row)
+        self.composition_table.setCellWidget(row, 0, self._make_tag_combo())
+        self.composition_table.setCellWidget(row, 1, self._make_count_spin())
+        self.composition_table.selectRow(row)
+
+    def _remove_composition_row(self):
+        row = self.composition_table.currentRow()
+        if row >= 0:
+            self.composition_table.removeRow(row)
+
+    def _move_composition_row(self, direction):
+        row = self.composition_table.currentRow()
+        target = row + direction
+        if row < 0 or target < 0 or target >= self.composition_table.rowCount():
+            return
+        rules = self._composition_rules(allow_empty=True)
+        rules[row], rules[target] = rules[target], rules[row]
+        self._set_composition_rules(rules)
+        self.composition_table.selectRow(target)
+
+    def _set_composition_rules(self, rules):
+        self.composition_table.setRowCount(0)
+        for tag, count in rules:
+            row = self.composition_table.rowCount()
+            self.composition_table.insertRow(row)
+            self.composition_table.setCellWidget(row, 0, self._make_tag_combo(tag))
+            self.composition_table.setCellWidget(row, 1, self._make_count_spin(count))
+
+    def _composition_rules(self, allow_empty=False):
+        rules = []
+        for row in range(self.composition_table.rowCount()):
+            tag_widget = self.composition_table.cellWidget(row, 0)
+            count_widget = self.composition_table.cellWidget(row, 1)
+            tag = tag_widget.currentText().strip() if tag_widget else ""
+            count = count_widget.value() if count_widget else 0
+            if tag or allow_empty:
+                rules.append((tag, count))
+        return rules
+
+    def _refresh_composition_tag_options(self):
+        rules = self._composition_rules(allow_empty=True)
+        self._set_composition_rules(rules)
+
+    def _reload_composition_presets(self):
+        from .preset_store import load_presets
+
+        self._composition_presets = load_presets()
+        current = self.preset_combo.currentText().strip()
+        self.preset_combo.blockSignals(True)
+        self.preset_combo.clear()
+        for preset in self._composition_presets:
+            self.preset_combo.addItem(preset["name"])
+        if current:
+            idx = self.preset_combo.findText(current)
+            if idx >= 0:
+                self.preset_combo.setCurrentIndex(idx)
+        self.preset_combo.blockSignals(False)
+        has_presets = bool(self._composition_presets)
+        self.load_preset_btn.setEnabled(has_presets)
+        self.delete_preset_btn.setEnabled(has_presets)
+
+    def _selected_preset(self):
+        name = self.preset_combo.currentText().strip()
+        if not name:
+            return None
+        for preset in self._composition_presets:
+            if preset["name"] == name:
+                return preset
+        return None
+
+    def _load_selected_preset(self):
+        preset = self._selected_preset()
+        if not preset:
+            return
+        rules = [
+            (rule["tag"], rule["count"])
+            for rule in preset.get("rules", [])
+        ]
+        self.composition_check.setChecked(True)
+        self._set_composition_rules(rules)
+
+    def _save_current_preset(self):
+        from .preset_store import upsert_preset
+
+        rules = self._composition_rules()
+        if not rules:
+            QMessageBox.warning(
+                self, "No Tag Composition",
+                "Add at least one tag quota row before saving a preset.")
+            return
+        name, ok = QInputDialog.getText(
+            self,
+            "Save Tag Composition Preset",
+            "Preset name:",
+            QLineEdit.EchoMode.Normal,
+            self.preset_combo.currentText().strip(),
+        )
+        name = name.strip()
+        if not ok or not name:
+            return
+        upsert_preset(name, rules)
+        self._reload_composition_presets()
+        idx = self.preset_combo.findText(name)
+        if idx >= 0:
+            self.preset_combo.setCurrentIndex(idx)
+
+    def _delete_selected_preset(self):
+        from .preset_store import delete_preset
+
+        preset = self._selected_preset()
+        if not preset:
+            return
+        answer = QMessageBox.question(
+            self,
+            "Delete Tag Composition Preset",
+            f"Delete preset '{preset['name']}'?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+        delete_preset(preset["name"])
+        self._reload_composition_presets()
 
     def _start(self):
         self.start_btn.setEnabled(False)
@@ -994,8 +1343,41 @@ class LauncherDialog(QDialog):
         note_type = self.note_type_combo.currentText().strip() or DEFAULT_NOTE_TYPE
         note_ids  = list(self._picked_ids)
 
+        if self.composition_check.isChecked():
+            rules = self._composition_rules()
+            if not rules:
+                QMessageBox.warning(
+                    self, "No Tag Composition",
+                    "Add at least one tag quota row before starting.")
+                self.start_btn.setEnabled(True)
+                self.start_btn.setText("▶  Start Exam")
+                return
+            if any(not tag for tag, _count in rules):
+                QMessageBox.warning(
+                    self, "Incomplete Tag Composition",
+                    "Each tag quota row must choose a tag.")
+                self.start_btn.setEnabled(True)
+                self.start_btn.setText("▶  Start Exam")
+                return
+            note_ids, shortages = _tagged_sample(
+                note_ids, self._picked_meta, rules,
+                shuffle_groups=self.shuffle_check.isChecked(),
+            )
+            if shortages:
+                lines = [
+                    f"{tag}: requested {wanted}, available {got}"
+                    for tag, wanted, got in shortages
+                ]
+                QMessageBox.warning(
+                    self, "Not Enough Questions",
+                    "Some tag quotas could not be filled from the selected questions:\n\n"
+                    + "\n".join(lines))
+                self.start_btn.setEnabled(True)
+                self.start_btn.setText("▶  Start Exam")
+                return
+
         # ── Smart sampling across sub-decks ──────────────────────────────
-        if self.limit_check.isChecked():
+        elif self.limit_check.isChecked():
             limit = self.limit_spin.value()
             pairs = [
                 (nid, self._picked_meta.get(nid, {"deck": ""}))
@@ -1004,7 +1386,7 @@ class LauncherDialog(QDialog):
             note_ids = _smart_sample(pairs, limit)
 
         # Shuffle only changes final exam order, never membership logic.
-        if self.shuffle_check.isChecked():
+        if self.shuffle_check.isChecked() and not self.composition_check.isChecked():
             random.shuffle(note_ids)
 
         questions = []
@@ -1012,6 +1394,8 @@ class LauncherDialog(QDialog):
             note = mw.col.get_note(nid)
             q = _parse_note(note, note_type)
             if q:
+                if self.shuffle_check.isChecked():
+                    _shuffle_question_options(q)
                 q["nid"] = nid
                 questions.append(q)
 

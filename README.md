@@ -19,8 +19,10 @@ Exam Simulator - NB lets you:
 - build custom exams from your Anki MCQ notes
 - filter questions by deck, tags, simulation history, and flags
 - choose a fixed question count
+- build tag-based question type compositions, such as single-choice first and multi-choice second
+- save reusable tag composition presets
 - run timed or untimed sessions
-- shuffle question order
+- shuffle question order and answer option order
 - apply different scoring systems
 - review detailed results question by question
 - flag or tag selected questions after the exam
@@ -43,8 +45,10 @@ Exam Simulator - NB lets you:
 - choose the MCQ note type
 - browse and select questions manually
 - set the number of questions
+- optionally set tag quotas in a fixed order
+- save and load tag quota presets
 - give the exam a name
-- optionally shuffle question order
+- optionally shuffle question and option order, or shuffle questions only within each tag quota group
 
 ### Flexible Filtering
 You can narrow the question pool using:
@@ -56,10 +60,18 @@ You can narrow the question pool using:
 ### Balanced Sampling
 The add-on supports balanced round-robin style sampling across subdecks so a single deck does not dominate the exam unnecessarily.
 
+### Tag Composition
+After selecting a question pool, enable **Build exam by tag quotas** to define rows such as `single-choice: 350`, `multi-choice: 100`, and `true-false: 50`.
+
+The row order is the exam order. When shuffle is enabled in this mode, questions are shuffled inside each tag group, but groups are not mixed together.
+
+Tag composition presets are stored locally in the current Anki profile and can be reused for later simulations.
+
 ### Exam Interface
 - dedicated exam window
 - exam-paper style question layout
-- answer sheet grid on the side
+- answer directly inside each question
+- compact question status navigator with five questions per row
 - timer support
 - zoom controls
 - quick navigation between answer sheet and questions
@@ -132,7 +144,7 @@ Mapping:
 2. Go to **Tools → Exam Simulator - NB**
 3. Choose the relevant MCQ note type
 4. Filter or browse the questions you want
-5. Set the number of questions
+5. Set the number of questions, or enable tag quotas for a fixed question type composition
 6. Name the exam if you want it saved in Simulation History
 7. Choose timing and scoring options
 8. Start the exam

@@ -205,16 +205,11 @@ class ExamWindow(QMainWindow):
     <div id="questions-container"></div>
   </div>
   <div id="right-panel">
-    <div id="grid-header-row">
-      <span id="grid-title">ANSWER SHEET</span>
+    <div id="status-header-row">
+      <span id="status-title">QUESTION STATUS</span>
       <span id="progress">Done: <b id="ans-count">0</b>/{n}</span>
     </div>
-    <div id="grid-scroll">
-      <table id="answer-grid">
-        <thead id="grid-head"></thead>
-        <tbody id="grid-body"></tbody>
-      </table>
-    </div>
+    <div id="status-grid"></div>
   </div>
 </div>
 
@@ -258,7 +253,12 @@ function renderQuestions() {{
     block.id        = "qblock-" + i;
     let opts = "";
     for (const [l, t] of Object.entries(q.options))
-      opts += `<div class="q-opt"><span class="opt-letter">${{l}}.</span><span class="opt-text">${{t}}</span></div>`;
+      opts += `
+        <button type="button" class="q-opt" id="opt-${{i}}-${{l}}" onclick="toggle(${{i}},'${{l}}')">
+          <span class="opt-box" id="mark-${{i}}-${{l}}"></span>
+          <span class="opt-letter">${{l}}.</span>
+          <span class="opt-text">${{t}}</span>
+        </button>`;
     const src = q.source ? `<div class="q-source">Source: ${{q.source}}</div>` : "";
     block.innerHTML = `
       <div class="q-header">
@@ -270,40 +270,53 @@ function renderQuestions() {{
   }});
 }}
 
-/* ── Grid ───────────────────────────────────────────────────────────────── */
-function renderGrid() {{
-  const ALL = ["A","B","C","D","E"];
-  const used = new Set();
-  QUESTIONS.forEach(q => Object.keys(q.options).forEach(l => used.add(l)));
-  const cols = ALL.filter(l => used.has(l));
-
-  document.getElementById("grid-head").innerHTML =
-    "<tr><th class='th-num'></th>" + cols.map(l=>`<th>${{l}}</th>`).join("") + "</tr>";
-
-  const tbody = document.getElementById("grid-body");
+/* ── Status navigator ───────────────────────────────────────────────────── */
+function renderStatusGrid() {{
+  const grid = document.getElementById("status-grid");
   QUESTIONS.forEach((q, i) => {{
-    const tr = document.createElement("tr");
-    tr.id = "grow-" + i;
-    let cells = `<td class="td-num" onclick="scrollToQ(${{i}})" title="Jump to Q${{i+1}}">Q${{i+1}}</td>`;
-    cols.forEach(l => {{
-      if (q.options[l] !== undefined)
-        cells += `<td><div class="box" id="b-${{i}}-${{l}}" onclick="toggle(${{i}},'${{l}}')"></div></td>`;
-      else
-        cells += `<td><div class="box box-na"></div></td>`;
-    }});
-    tr.innerHTML = cells;
-    tbody.appendChild(tr);
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "status-cell";
+    btn.id = "status-" + i;
+    btn.textContent = i + 1;
+    btn.title = "Jump to Q" + (i + 1);
+    btn.onclick = () => scrollToQ(i);
+    grid.appendChild(btn);
   }});
 }}
 
 function toggle(qi, l) {{
   if (!answers[qi]) answers[qi] = new Set();
   const s  = answers[qi];
-  const el = document.getElementById(`b-${{qi}}-${{l}}`);
-  if (s.has(l)) {{ s.delete(l); el.classList.remove("box-on"); el.textContent = ""; }}
-  else          {{ s.add(l);    el.classList.add("box-on");    el.textContent = "✕"; }}
-  const numCell = document.querySelector(`#grow-${{qi}} .td-num`);
-  if (numCell) numCell.classList.toggle("td-done", s.size > 0);
+  const q = QUESTIONS[qi] || {{}};
+  const answerMode = q.answer_mode || ((q.correct || []).length > 1 ? "multi" : "single");
+
+  function setOptionState(letter, selected) {{
+    const opt = document.getElementById(`opt-${{qi}}-${{letter}}`);
+    const mark = document.getElementById(`mark-${{qi}}-${{letter}}`);
+    if (!opt || !mark) return;
+    if (selected) {{
+      opt.classList.add("q-opt-on");
+      mark.textContent = "✕";
+    }} else {{
+      opt.classList.remove("q-opt-on");
+      mark.textContent = "";
+    }}
+  }}
+
+  if (s.has(l)) {{
+    s.delete(l);
+    setOptionState(l, false);
+  }} else {{
+    if (answerMode !== "multi") {{
+      Array.from(s).forEach(prev => setOptionState(prev, false));
+      s.clear();
+    }}
+    s.add(l);
+    setOptionState(l, true);
+  }}
+  const statusCell = document.getElementById(`status-${{qi}}`);
+  if (statusCell) statusCell.classList.toggle("status-done", s.size > 0);
   document.getElementById("ans-count").textContent =
     Object.values(answers).filter(s=>s&&s.size>0).length;
 }}
@@ -371,7 +384,7 @@ function doSubmit() {{
 }}
 
 renderQuestions();
-renderGrid();
+renderStatusGrid();
 startTimer();
 </script>
 </body>
@@ -449,57 +462,59 @@ body {
 .q-header { display: flex; gap: 8px; margin-bottom: 10px; line-height: 1.6; }
 .q-num  { font-weight: bold; font-size: 1em; flex-shrink: 0; padding-top: 1px; }
 .q-text { font-size: 1em; font-weight: bold; line-height: 1.65; }
-.q-opts { display: flex; flex-direction: column; gap: 3px; padding-left: 22px; }
-.q-opt  { display: flex; gap: 8px; font-size: .96em; line-height: 1.6; }
+.q-opts { display: flex; flex-direction: column; gap: 6px; padding-left: 22px; }
+.q-opt  {
+  display: flex; gap: 8px; align-items: flex-start;
+  width: 100%; padding: 5px 8px;
+  background: #fff; border: 1px solid transparent;
+  font-family: "Times New Roman", Times, serif;
+  font-size: .96em; line-height: 1.6; text-align: left;
+  cursor: pointer;
+}
+.q-opt:hover { background: #eff6ff; border-color: #bfdbfe; }
+.q-opt-on {
+  background: #dbeafe;
+  border-color: #2563eb;
+  box-shadow: inset 0 0 0 1px rgba(37,99,235,.2);
+}
+.opt-box {
+  width: 20px; height: 20px; margin-top: 2px;
+  border: 1.5px solid #444; background: #fff;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; font-family: Arial, sans-serif;
+  font-size: 13px; font-weight: bold; line-height: 1;
+}
+.q-opt-on .opt-box { border-color: #1d4ed8; color: #0f172a; }
 .opt-letter { font-weight: bold; flex-shrink: 0; min-width: 18px; }
-.opt-text   { color: #111; }
+.opt-text   { color: #111; flex: 1; }
 .q-source   { margin-top: 10px; padding-left: 22px; font-size: .85em; font-style: italic; color: #555; }
 
-/* Right panel / answer grid */
+/* Right panel / status navigator */
 #right-panel {
-  flex: 0 0 280px; min-width: 240px; max-width: 340px;
+  flex: 0 0 260px; min-width: 220px; max-width: 300px;
   background: #f5f5f0; display: flex; flex-direction: column;
   padding: 14px 10px 10px; gap: 6px; font-family: Arial, sans-serif;
   border-left: 2px solid #999;
 }
-#grid-header-row {
+#status-header-row {
   display: flex; justify-content: space-between; align-items: baseline;
   padding: 0 4px 4px; border-bottom: 2px solid #333; margin-bottom: 2px;
 }
-#grid-title   { font-size: 11px; font-weight: bold; letter-spacing: 1.5px; text-transform: uppercase; color: #333; }
+#status-title { font-size: 11px; font-weight: bold; letter-spacing: 1.5px; text-transform: uppercase; color: #333; }
 #progress     { font-size: 11px; color: #555; }
-#grid-scroll  { flex: 1; overflow-y: auto; }
-#answer-grid  { width: 100%; border-collapse: collapse; font-size: 12px; font-family: Arial, sans-serif; }
-#answer-grid thead th {
-  background: #333; color: #fff; padding: 5px 0; text-align: center;
-  font-size: 12px; font-weight: bold; position: sticky; top: 0; z-index: 5;
-  border: 1px solid #555;
+#status-grid  {
+  flex: 1; overflow-y: auto;
+  display: grid; grid-template-columns: repeat(5, 1fr);
+  grid-auto-rows: 34px; gap: 6px;
+  align-content: start; padding: 8px 2px 2px;
 }
-.th-num { width: 38px; }
-#answer-grid tbody tr { border-bottom: 1px solid #ccc; }
-#answer-grid tbody td { padding: 2px 3px; text-align: center; border: 1px solid #ccc; }
-.td-num {
-  font-size: 11px; font-weight: bold; color: #444;
-  cursor: pointer; user-select: none; background: #eee; white-space: nowrap;
+.status-cell {
+  border: 1px solid #bbb; background: #fff; color: #444;
+  font-size: 12px; font-weight: bold; cursor: pointer;
+  font-family: Arial, sans-serif; user-select: none;
 }
-.td-num:hover { color: #2563eb; background: #dbeafe; }
-.td-done      { color: #15803d !important; background: #dcfce7 !important; }
-.box {
-  width: 22px; height: 22px; border: 1.5px solid #444;
-  background: #fff; margin: 0 auto; cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 14px; font-weight: bold; color: #111;
-  user-select: none; line-height: 1;
-}
-.box:hover { background: #dbeafe; border-color: #2563eb; }
-.box-on {
-  background: #dbeafe !important;
-  border: 2px solid #1d4ed8 !important;
-  color: #0f172a !important;
-  box-shadow: inset 0 0 0 2px rgba(29,78,216,.18), 0 0 0 1px rgba(29,78,216,.14);
-}
-.box-na    { background: #e5e5e5 !important; border-color: #bbb !important; cursor: default; opacity:.5; }
-.box-na:hover { background: #e5e5e5 !important; border-color: #bbb !important; }
+.status-cell:hover { color: #2563eb; background: #dbeafe; border-color: #2563eb; }
+.status-done { color: #15803d !important; background: #dcfce7 !important; border-color: #22c55e !important; }
 
 /* Custom confirm modal */
 #modal-overlay {
