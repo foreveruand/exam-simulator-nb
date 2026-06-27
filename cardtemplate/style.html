@@ -1,0 +1,207 @@
+#myCard, #myCard * { box-sizing: border-box; }
+
+#myCard {
+  bottom: 0;
+  left: 1%;
+  right: 0;
+  top: 5%;
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+  min-height: 96vh;
+  overflow-x: hidden;
+}
+
+.table_container {
+  margin-top: 30px;
+  cursor: pointer;
+}
+.nightMode .CFAL1 { filter: invert(1); }
+
+table th, table td { padding: 5px 15px !important; }
+table td, table th, table td rowspan { border: solid 1px black; }
+.table-default-style {
+  border-collapse: collapse !important;
+  font-size: 1em;
+  margin-top: 10px;
+  max-width: 900px;
+}
+
+.highlighted { background-color: yellow; }
+.nightMode .highlighted { background-color: #f4b400; }
+
+#myCard > div:first-child { flex: 12; }
+#myCard > div:last-child { padding-top: 1em; }
+
+.front .container:hover { cursor: pointer; }
+
+.card {
+  font-family: arial;
+  font-size: 20px;
+  text-align: left;
+  color: black;
+  background-color: white;
+  margin: 2vh 1vw;
+}
+
+.container {
+  display: flex;
+  padding: .5em;
+  width: 100% !important;
+  align-items: center;
+}
+
+#shuffle > .container .option {
+  border-radius: .4em;
+  padding: .5em .8em;
+  position: relative;
+  width: 100%;
+  flex: 1;
+  overflow: hidden;
+  background-clip: padding-box;
+  border: 1px solid rgba(0,0,0,0.14);
+}
+body.nightMode #shuffle > .container .option {
+  border-color: rgba(255,255,255,0.18);
+}
+
+#shuffle > .container .option p { margin: 0; }
+
+.fill-correct {
+  background: rgba(0,190,0,0.20) !important;
+}
+body.nightMode .fill-correct {
+  background: rgba(36,89,43,0.9) !important;
+}
+
+.fill-wrong {
+  background: rgba(255,38,38,0.30) !important;
+}
+
+.container.chosen-outline > .option {
+  border-color: rgba(59,130,246,0.95) !important;
+  box-shadow: inset 0 0 0 2px rgba(59,130,246,0.80) !important;
+}
+
+.front .container.check > .option {
+  border-color: rgba(59,130,246,0.95) !important;
+  box-shadow: inset 0 0 0 2px rgba(59,130,246,0.80) !important;
+}
+
+.circle {
+  display: none !important;
+}
+
+.container input[type="checkbox"] {
+  display: none;
+  width: 1.6em;
+  height: 1.6em;
+  position: relative;
+  top: 7px;
+}
+
+.front .container::before {
+  content: "";
+  display: inline-block;
+  flex-shrink: 0;
+  vertical-align: top;
+  height: 1.15em;
+  width: 1.15em;
+  margin-right: 0.6em;
+  color: rgba(0, 0, 0, 0.275);
+  border: solid 0.06em;
+  box-shadow: 0 0 0.04em, 0 0.06em 0.16em -0.03em inset, 0 0 0 0.07em transparent inset;
+  border-radius: 0.2em;
+  background: url('data:image/svg+xml;charset=UTF-8,<svg xmlns="http://www.w3.org/2000/svg" version="1.1" xml:space="preserve" fill="white" viewBox="0 0 9 9"><rect x="0" y="4.3" transform="matrix(-0.707 -0.7072 0.7072 -0.707 0.5891 10.4702)" width="4.3" height="1.6" /><rect x="2.2" y="2.9" transform="matrix(-0.7071 0.7071 -0.7071 -0.7071 12.1877 2.9833)" width="6.1" height="1.7" /></svg>') no-repeat center, white;
+  background-size: 0;
+  transition: color 0.1s, border 0.1s, background 0.15s, box-shadow 0.1s;
+}
+.check::before {
+  background-color: #3B99FC !important;
+  background-size: 0.75em !important;
+  color: rgba(0, 0, 0, 0.075) !important;
+}
+
+.back .container { margin-left: 0 !important; }
+
+.sourceBox {
+  margin-top: 20px;
+  margin-bottom: 16px;
+  padding: 12px;
+  background: transparent !important;
+  border-left: 4px solid #0066cc;
+  font-size: 18px;
+  color: inherit;
+}
+
+#extra-section { cursor: pointer; margin-top: 14px; }
+.header { font: bold 17px/1.5em; padding-left: 0.5em; }
+.header-yellow { border-left: 4px solid #f4b400; color: #f4b400; }
+.content { padding-left: 0.5em; border-left: 4px solid transparent; }
+
+#settings {
+  display: flex;
+  height: auto;
+  align-items: flex-start;
+}
+
+#settings-content {
+  margin-left: 1.2em;
+  display: none;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+#gear {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  z-index: 10;
+}
+
+#zoom {
+  display: flex;
+  position: relative;
+  align-items: center;
+  gap: 6px;
+}
+#zoom div { display: inline-block; cursor: pointer; }
+
+#switch {
+  display: flex;
+  position: relative;
+  align-items: center;
+}
+
+.check-box { display: flex; align-items: center; }
+.check-box label { padding: 0 10px 0 0; }
+
+.check-box input[type="checkbox"] {
+  position: relative;
+  appearance: none;
+  width: 50px;
+  height: 25px;
+  background: #ccc;
+  border-radius: 50px;
+  box-shadow: inset 0 0 2px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  transition: 0.4s !important;
+  display: flex;
+}
+.check-box input:checked[type="checkbox"] { background: #059862; }
+.check-box input[type="checkbox"]::after {
+  position: absolute;
+  content: "";
+  width: 25px;
+  height: 25px;
+  top: 0;
+  left: 0;
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+  transform: scale(1.1);
+  transition: 0.4s;
+}
+.check-box input:checked[type="checkbox"]::after { left: 50%; }
+

@@ -1,0 +1,319 @@
+<div id="myCard">
+  <div class="front">
+    <div id="answerData" style="display:none">{{Ans}}</div>
+    <div id="tagData" style="display:none">{{Tags}}</div>
+    <div id="questionArea" style='font-family:"Arial";font-size:25px;font-weight:bold'>{{Question}}</div>
+    <br>
+
+    <form id="shuffle">
+      {{#option_1 (A)}}<div class="container" id="A"><input type="checkbox" name="radAnswer" class="checkbox" id="A"><div class="option">{{option_1 (A)}}</div></div>{{/option_1 (A)}}
+      {{#option_2 (B)}}<div class="container" id="B"><input type="checkbox" name="radAnswer" class="checkbox" id="B"><div class="option">{{option_2 (B)}}</div></div>{{/option_2 (B)}}
+      {{#option_3 (C)}}<div class="container" id="C"><input type="checkbox" name="radAnswer" class="checkbox" id="C"><div class="option">{{option_3 (C)}}</div></div>{{/option_3 (C)}}
+      {{#option_4 (D)}}<div class="container" id="D"><input type="checkbox" name="radAnswer" class="checkbox" id="D"><div class="option">{{option_4 (D)}}</div></div>{{/option_4 (D)}}
+      {{#option_5 (E)}}<div class="container" id="E"><input type="checkbox" name="radAnswer" class="checkbox" id="E"><div class="option">{{option_5 (E)}}</div></div>{{/option_5 (E)}}
+      <div class="container" id="F"><input type="checkbox" name="radAnswer" class="checkbox" id="F"><div class="option"></div></div>
+      <div class="container" id="G"><input type="checkbox" name="radAnswer" class="checkbox" id="G"><div class="option"></div></div>
+      <div class="container" id="H"><input type="checkbox" name="radAnswer" class="checkbox" id="H"><div class="option"></div></div>
+    </form>
+
+    {{#Source}}
+    <div class="sourceBox">
+      <b>Source:</b> {{Source}}
+    </div>
+    {{/Source}}
+  </div>
+
+  <div id="settings">
+    <div id="gear">
+      <svg width="50px" height="50px" viewBox="0 0 48 48" version="1" xmlns="http://www.w3.org/2000/svg" enable-background="new 0 0 48 48"><path fill="#607D8B" d="M39.6,27.2c0.1-0.7,0.2-1.4,0.2-2.2s-0.1-1.5-0.2-2.2l4.5-3.2c0.4-0.3,0.6-0.9,0.3-1.4L40,10.8 c-0.3-0.5-0.8-0.7-1.3-0.4l-5,2.3c-1.2-0.9-2.4-1.6-3.8-2.2l-0.5-5.5c-0.1-0.5-0.5-0.9-1-0.9h-8.6c-0.5,0-1,0.4-1,0.9l-0.5,5.5 c-1.4,0.6-2.7,1.3-3.8,2.2l-5-2.3c-0.5-0.2-1.1,0-1.3,0.4l-4.3,7.4c-0.3,0.5-0.1,1.1,0.3,1.4l4.5,3.2c-0.1,0.7-0.2,1.4-0.2,2.2 s0.1,1.5,0.2,2.2L4,30.4c-0.4,0.3-0.6,0.9-0.3,1.4L8,39.2c0.3,0.5,0.8,0.7,1.3,0.4l5-2.3c1.2,0.9,2.4,1.6,3.8,2.2l0.5,5.5 c0.1,0.5,0.5,0.9,1,0.9h8.6c0.5,0,1-0.4,1-0.9l0.5-5.5c1.4-0.6,2.7,1.3,3.8,2.2l5,2.3c0.5,0.2,1.1,0,1.3-0.4l4.3-7.4 c0.3-0.5,0.1-1.1-0.3-1.4L39.6,27.2z M24,35c-5.5,0-10-4.5-10-10c0-5.5,4.5-10,10-10c5.5,0,10,4.5,10,10C34,30.5,29.5,35,24,35z"/><path fill="#455A64" d="M24,13c-6.6,0-12,5.4-12,12c0,6.6,5.4,12,12,12s12-5.4,12-12C36,18.4,30.6,13,24,13z M24,30 c-2.8,0-5-2.2-5-5c0-2.8,2.2-5,5-5s5,2.2,5,5C29,27.8,26.8,30,24,30z"/></svg>
+    </div>
+
+    <div id="settings-content" style="display:none">
+      <div id="switch">
+        <div class="check-box">
+          <label for="Shuffling">Shuffling</label>
+          <input id="Shuffling" type="checkbox">
+        </div>
+      </div>
+
+      <div id="zoom">
+        <div id="positive">
+          <svg width="50px" height="50px" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><title>70 Basic icons by Xicons.co</title><path d="M24,3A21,21,0,1,0,45,24,21,21,0,0,0,24,3Z" fill="#afe0f5"/><path d="M32,26H16a2,2,0,0,1,0-4H32A2,2,0,0,1,32,26Z" fill="#38b1e7"/><path d="M24,34a2,2,0,0,1-2-2V16a2,2,0,0,1,4,0V32A2,2,0,0,1,24,34Z" fill="#38b1e7"/></svg>
+        </div>
+        <div id="default">
+          <svg width="50px" height="50px" version="1.1" viewBox="0 0 496.17 496.17" xml:space="preserve" xmlns="http://www.w3.org/2000/svg"><path d="m5e-3 248.09c0-137.02 111.07-248.09 248.07-248.09 137.01 0 248.08 111.06 248.08 248.09 0 137-111.07 248.08-248.08 248.08-137.01 0-248.07-111.08-248.07-248.08z" fill="#32BEA6"/><path d="m400.81 169.58c-2.502-4.865-14.695-16.012-35.262-5.891-20.564 10.122-10.625 32.351-10.625 32.351 7.666 15.722 11.98 33.371 11.98 52.046 0 65.622-53.201 118.82-118.83 118.82-65.619 0-118.82-53.202-118.82-118.82 0-61.422 46.6-111.95 106.36-118.17v30.793s-0.084 1.836 1.828 2.999c1.906 1.163 3.818 0 3.818 0l98.576-58.083s2.211-1.162 2.211-3.436c0-1.873-2.211-3.205-2.211-3.205l-98.248-57.754s-2.24-1.605-4.23-0.826c-1.988 0.773-1.744 3.481-1.744 3.481v32.993c-88.998 6.392-159.23 80.563-159.23 171.21 0 94.824 76.873 171.7 171.69 171.7 94.828 0 171.71-76.872 171.71-171.7 1e-3 -28.298-6.852-54.98-18.972-78.505z" fill="#F7F7F7"/></svg>
+        </div>
+        <div id="negative">
+          <svg width="50px" height="50px" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><title>70 Basic icons by Xicons.co</title><path d="M24,3A21,21,0,1,0,45,24,21,21,0,0,0,24,3Z" fill="#f8bcc4"/><path d="M32,26H16a2,2,0,0,1,0-4H32A2,2,0,0,1,32,26Z" fill="#ee586c"/></svg>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+if(void 0===window.Persistence){var e="github.com/SimonLammer/anki-persistence/",t="_default";if(window.Persistence_sessionStorage=function(){var i=!1;try{"object"==typeof window.sessionStorage&&(i=!0,this.clear=function(){for(var t=0;t<sessionStorage.length;t++){var i=sessionStorage.key(t);0==i.indexOf(e)&&(sessionStorage.removeItem(i),t--)}},this.setItem=function(i,n){void 0==n&&(n=i,i=t),sessionStorage.setItem(e+i,JSON.stringify(n))},this.getItem=function(i){return void 0==i&&(i=t),JSON.parse(sessionStorage.getItem(e+i))},this.removeItem=function(i){void 0==i&&(void 0==i&&(i=t),sessionStorage.removeItem(e+i))},this.getAllKeys=function(){for(var t=[],i=Object.keys(sessionStorage),n=0;n<i.length;n++){var s=i[n];0==s.indexOf(e)&&t.push(s.substring(e.length,s.length))}return t.sort()})}catch(n){}this.isAvailable=function(){return i}},window.Persistence_windowKey=function(i){var n=window[i],s=!1;"object"==typeof n&&(s=!0,this.clear=function(){n[e]={}},this.setItem=function(i,s){void 0==s&&(s=i,i=t),n[e][i]=s},this.getItem=function(i){return void 0==i&&(i=t),void 0==n[e][i]?null:n[e][i]},this.removeItem=function(i){void 0==i&&(i=t),delete n[e][i]},this.getAllKeys=function(){return Object.keys(n[e])},void 0==n[e]&&this.clear()),this.isAvailable=function(){return s}},window.Persistence=new Persistence_sessionStorage,Persistence.isAvailable()||(window.Persistence=new Persistence_windowKey("py")),!Persistence.isAvailable()){var i=window.location.toString().indexOf("title"),n=window.location.toString().indexOf("main",i);i>0&&n>0&&n-i<10&&(window.Persistence=new Persistence_windowKey("qt"))}}
+
+var X = document.getElementById("answerData").textContent || "";
+if (X == X.toLowerCase()) X = X.toUpperCase();
+
+Persistence.setItem("scroll", 0);
+Persistence.setItem("answer", "");
+
+document.querySelectorAll('.option').forEach(div => {
+  if (div.innerHTML === '') div.parentNode.remove();
+});
+
+var container = document.getElementsByClassName("container");
+var DefElems = document.querySelectorAll('#shuffle > div');
+
+function normalizeAnswer(raw){
+  return String(raw || "").toUpperCase().replace(/<[^>]*>/g, "").replace(/\s/g, "");
+}
+
+function parseAnswerLetters(raw){
+  var letters = [];
+  normalizeAnswer(raw).split("").forEach(function(ch){
+    var letter = "";
+    if(ch >= "A" && ch <= "H") letter = ch;
+    if(ch >= "1" && ch <= "8") letter = String.fromCharCode(Number(ch) + 64);
+    if(letter && letters.indexOf(letter) === -1) letters.push(letter);
+  });
+  return letters;
+}
+
+function normalizeOptionText(html){
+  var div = document.createElement("div");
+  div.innerHTML = html || "";
+  return (div.textContent || div.innerText || "")
+    .replace(/[\s\.\。:：;；,，、()（）\[\]【】]+/g, "")
+    .toLowerCase();
+}
+
+function getTagTokens(){
+  var tags = (document.getElementById("tagData").textContent || "").toLowerCase().replace(/_/g, "-");
+  var tokens = [];
+  tags.split(/\s+/).forEach(function(tag){
+    if(!tag) return;
+    tokens.push(tag);
+    tag.split("::").forEach(function(part){
+      if(part && tokens.indexOf(part) === -1) tokens.push(part);
+    });
+  });
+  return tokens;
+}
+
+function hasAnyTag(names){
+  var tokens = getTagTokens();
+  return tokens.some(function(tag){ return names.indexOf(tag) !== -1; });
+}
+
+function isTrueFalseQuestion(){
+  if(hasAnyTag(["true-false", "truefalse", "tf", "判断", "是非"])) return true;
+  var values = [];
+  document.querySelectorAll("#shuffle > .container .option").forEach(function(opt){
+    values.push(normalizeOptionText(opt.innerHTML));
+  });
+  if(values.length !== 2) return false;
+  values.sort();
+  return [
+    ["对", "错"],
+    ["正确", "错误"],
+    ["false", "true"],
+    ["f", "t"],
+    ["no", "yes"]
+  ].some(function(pair){
+    return values[0] === pair[0] && values[1] === pair[1];
+  });
+}
+
+var answerLetters = parseAnswerLetters(X);
+var isShortAnswer = document.querySelectorAll("#shuffle > .container").length === 0;
+var isTrueFalse = isTrueFalseQuestion();
+var isSingleSelect = hasAnyTag(["single-choice", "singlechoice", "single-select", "singleselect", "单选"]) || isTrueFalse;
+var isMultiSelect = !isShortAnswer && !isSingleSelect && (
+  hasAnyTag(["multi-choice", "multichoice", "multi-select", "multiselect", "multiple-select", "multiple-response", "多选"])
+  || answerLetters.length > 1
+);
+var canShuffleOptions = !isShortAnswer && !isTrueFalse;
+
+Persistence.setItem("IsShortAnswer", isShortAnswer);
+Persistence.setItem("ShuffleCurrent", false);
+
+if(Persistence.getItem("Zoom") == null){ Persistence.setItem("Zoom", 1); }
+var zoom = Persistence.getItem("Zoom");
+$('.front').css('zoom', zoom);
+
+$('#positive').on('click', function(){ zoom += 0.1; Persistence.setItem("Zoom", zoom); $('.front').css('zoom', zoom); });
+$('#default').on('click', function(){ zoom = 1; Persistence.setItem("Zoom", zoom); $('.front').css('zoom', zoom); });
+$('#negative').on('click', function(){ zoom -= 0.1; Persistence.setItem("Zoom", zoom); $('.front').css('zoom', zoom); });
+
+(function(){
+  var gear = document.getElementById("gear");
+  var sc = document.getElementById("settings-content");
+  if (!gear || !sc) return;
+  sc.style.display = "none";
+  function isHidden(el){ return window.getComputedStyle(el).display === "none"; }
+  gear.addEventListener("click", function(e){
+    e.preventDefault();
+    e.stopPropagation();
+    sc.style.display = isHidden(sc) ? "flex" : "none";
+    setTimeout(function(){ $('#myCard').scrollTop($('#myCard')[0].scrollHeight); }, 120);
+  }, true);
+})();
+
+document.getElementById("myCard").onscroll = function(){
+  Persistence.setItem("scroll", document.getElementById("myCard").scrollTop);
+};
+
+function ToggleCheck() {
+  if(isShortAnswer) return;
+  var mycheckBox = this.querySelector("input[type='checkbox']");
+  if(!mycheckBox) return;
+  var shouldCheck = !mycheckBox.checked;
+  if(shouldCheck && !isMultiSelect){
+    document.querySelectorAll("#shuffle > .container").forEach(function(c){
+      var cb = c.querySelector("input[type='checkbox']");
+      if(cb) cb.checked = false;
+      c.classList.remove("check");
+    });
+  }
+  mycheckBox.checked = shouldCheck;
+  this.classList.toggle("check", mycheckBox.checked);
+}
+
+function storeAnswerBox() {
+  var answer = "";
+  document.querySelectorAll("#shuffle > .container").forEach(function(c){
+    if(c.classList.contains("check")) answer += c.id;
+  });
+  Persistence.setItem("answer", answer);
+}
+
+function shuffle(elems) {
+  var allElems = (function() {
+    var ret = [], l = elems.length;
+    while (l--) ret[ret.length] = elems[l];
+    return ret;
+  })();
+
+  var shuffled = (function() {
+    var l = allElems.length, ret = [];
+    while (l--) {
+      var random = Math.floor(Math.random() * allElems.length),
+          randEl = allElems[random].cloneNode(true);
+      allElems.splice(random, 1);
+      ret[ret.length] = randEl;
+      Persistence.setItem("order"+l, random);
+    }
+    return ret;
+  })(), l = elems.length;
+
+  while (l--) {
+    elems[l].parentNode.insertBefore(shuffled[l], elems[l].nextSibling);
+    elems[l].parentNode.removeChild(elems[l]);
+  }
+}
+
+function reverseShuffle(elems) {
+  var allElems = (function() {
+    var ret = [], l = DefElems.length;
+    while (l--) ret[ret.length] = DefElems[l];
+    return ret;
+  })();
+
+  var shuffled = (function() {
+    var l = allElems.length, ret = [];
+    while (l--) {
+      var randEl = allElems[l].cloneNode(true);
+      allElems.splice(l, 1);
+      ret[ret.length] = randEl;
+      Persistence.setItem("order"+l, l);
+    }
+    return ret;
+  })(), l = elems.length;
+
+  while (l--) {
+    elems[l].parentNode.insertBefore(shuffled[l], elems[l].nextSibling);
+    elems[l].parentNode.removeChild(elems[l]);
+  }
+}
+
+function HandleShufflingBox(){
+  if(!canShuffleOptions){
+    $("#Shuffling").prop("checked", false);
+    Persistence.setItem("ShuffleCurrent", false);
+    return;
+  }
+  Persistence.setItem("ShufflingBox", $("#Shuffling").is(":checked"));
+  if($("#Shuffling").is(":checked")){
+    shuffle(document.querySelectorAll('#shuffle > div'));
+    $(".Letters").remove();
+    Persistence.setItem("ShuffleCurrent", true);
+    HandelEvents();
+  } else {
+    reverseShuffle(document.querySelectorAll('#shuffle > div'));
+    Persistence.setItem("ShuffleCurrent", false);
+    HandelEvents();
+  }
+}
+
+if(Persistence.getItem("ShufflingBox") == null){
+  Persistence.setItem("ShufflingBox", false);
+}
+
+for (var i = 1; i < container.length+1; i++) {
+  $(".container:nth-of-type("+i+") .option").prepend("<span class='Letters'>("+String.fromCharCode(64+i)+")&nbsp;</span>");
+}
+
+document.querySelector("#Shuffling").addEventListener("click", HandleShufflingBox);
+$("#Shuffling").prop("checked", canShuffleOptions && Persistence.getItem("ShufflingBox"));
+$("#Shuffling").prop("disabled", !canShuffleOptions);
+
+if(canShuffleOptions && $("#Shuffling").is(":checked")){
+  shuffle(document.querySelectorAll('#shuffle > div'));
+  $(".Letters").remove();
+  Persistence.setItem("ShuffleCurrent", true);
+}
+
+function HandelEvents(){
+  var conts = document.querySelectorAll("#shuffle > .container");
+  conts.forEach(function(c){
+    c.addEventListener("click", ToggleCheck);
+    c.addEventListener("click", storeAnswerBox);
+  });
+}
+HandelEvents();
+
+function isInsideQuestion(node){
+  if(!node) return false;
+  var el = (node.nodeType === 3) ? node.parentElement : node;
+  if(!el || !el.closest) return false;
+  return !!el.closest("#questionArea");
+}
+
+function deselect(){
+  $(this).replaceWith(this.innerHTML);
+  $("#questionArea .highlighted").click(deselect);
+}
+
+$(document).on("mouseup", function () {
+  var selected = window.getSelection();
+  if(!selected || selected.rangeCount === 0) return;
+  if(selected.toString().length === 0) return;
+
+  if(!isInsideQuestion(selected.anchorNode) || !isInsideQuestion(selected.focusNode)) return;
+
+  var range = selected.getRangeAt(0);
+  if(!isInsideQuestion(range.commonAncestorContainer)) return;
+
+  var newNode = document.createElement("span");
+  newNode.setAttribute("class", "highlighted");
+  newNode.addEventListener("click", deselect);
+
+  try {
+    range.surroundContents(newNode);
+    $("#questionArea .highlighted").off("click").on("click", deselect);
+  } catch(e) {}
+});
+</script>
