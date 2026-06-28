@@ -134,6 +134,61 @@ body.nightMode .fill-correct {
   color: inherit;
 }
 
+.tagText {
+  word-break: break-word;
+}
+
+.short-answer-box,
+.short-answer-review {
+  margin: 16px 0 20px;
+  max-width: 900px;
+}
+
+.short-answer-box label,
+.short-answer-label {
+  display: block;
+  margin-bottom: 8px;
+  font: bold 17px Arial, sans-serif;
+}
+
+.short-answer-box textarea,
+.short-answer-review-text {
+  width: 100%;
+  min-height: 120px;
+  padding: 12px;
+  border: 1px solid rgba(0,0,0,0.25);
+  border-radius: 6px;
+  background: rgba(255,255,255,0.96);
+  color: inherit;
+  font: 18px/1.5 Arial, sans-serif;
+}
+
+.short-answer-box textarea {
+  resize: vertical;
+}
+
+.short-answer-box textarea:focus {
+  outline: none;
+  border-color: #3B99FC;
+  box-shadow: 0 0 0 2px rgba(59,153,252,0.18);
+}
+
+.short-answer-review-text {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.short-answer-empty .short-answer-review-text {
+  color: #777;
+  font-style: italic;
+}
+
+body.nightMode .short-answer-box textarea,
+body.nightMode .short-answer-review-text {
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(255,255,255,0.24);
+}
+
 #extra-section { cursor: pointer; margin-top: 14px; }
 .header { font: bold 17px/1.5em; padding-left: 0.5em; }
 .header-yellow { border-left: 4px solid #f4b400; color: #f4b400; }
@@ -171,7 +226,9 @@ body.nightMode .fill-correct {
 #switch {
   display: flex;
   position: relative;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
 }
 
 .check-box { display: flex; align-items: center; }
@@ -204,4 +261,3 @@ body.nightMode .fill-correct {
   transition: 0.4s;
 }
 .check-box input:checked[type="checkbox"]::after { left: 50%; }
-

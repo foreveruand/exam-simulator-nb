@@ -14,6 +14,11 @@
       <div class="container" id="H"><div class="circle"></div><div class="option"></div></div>
     </form>
 
+    <div id="shortAnswerReview" class="short-answer-review" style="display:none">
+      <div class="short-answer-label">Your answer</div>
+      <div id="shortAnswerReviewText" class="short-answer-review-text"></div>
+    </div>
+
     {{#Source}}
     <div class="sourceBox">
       <b>Source:</b> {{Source}}
@@ -40,6 +45,10 @@
         <div class="check-box">
           <label for="Shuffling">Shuffling</label>
           <input id="Shuffling" type="checkbox">
+        </div>
+        <div id="shortAnswerBoxSwitch" class="check-box">
+          <label for="ShortAnswerBox">Answer box</label>
+          <input id="ShortAnswerBox" type="checkbox">
         </div>
       </div>
 
@@ -85,6 +94,26 @@ var isShortAnswer = document.querySelectorAll("#shuffle > .container").length ==
 if(isShortAnswer){
   var form = document.getElementById("shuffle");
   if(form) form.style.display = "none";
+}
+
+var shortAnswerBoxEnabled = Persistence.getItem("ShortAnswerBoxEnabled") === true;
+var shortAnswerBoxSwitch = document.getElementById("shortAnswerBoxSwitch");
+var shortAnswerBoxToggle = document.getElementById("ShortAnswerBox");
+if(shortAnswerBoxSwitch) shortAnswerBoxSwitch.style.display = isShortAnswer ? "flex" : "none";
+if(shortAnswerBoxToggle){
+  shortAnswerBoxToggle.checked = isShortAnswer && shortAnswerBoxEnabled;
+  shortAnswerBoxToggle.disabled = true;
+}
+if(isShortAnswer && shortAnswerBoxEnabled){
+  var shortAnswerReview = document.getElementById("shortAnswerReview");
+  var shortAnswerReviewText = document.getElementById("shortAnswerReviewText");
+  var shortAnswer = Persistence.getItem("ShortAnswer");
+  if(typeof shortAnswer !== "string") shortAnswer = "";
+  if(shortAnswerReview && shortAnswerReviewText){
+    shortAnswerReviewText.textContent = shortAnswer.trim() ? shortAnswer : "No answer entered";
+    shortAnswerReview.classList.toggle("short-answer-empty", !shortAnswer.trim());
+    shortAnswerReview.style.display = "block";
+  }
 }
 
 if ($('#extra>div').text() == '') $("#extra-header").hide();

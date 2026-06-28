@@ -16,6 +16,15 @@
       <div class="container" id="H"><input type="checkbox" name="radAnswer" class="checkbox" id="H"><div class="option"></div></div>
     </form>
 
+    <div id="shortAnswerBox" class="short-answer-box" style="display:none">
+      <label for="shortAnswerInput">Your answer</label>
+      <textarea id="shortAnswerInput" rows="5" autocomplete="off"></textarea>
+    </div>
+
+    <div id="tagBox" class="sourceBox tagBox">
+      <b>Tags:</b> <span id="tagDisplay" class="tagText">{{Tags}}</span>
+    </div>
+
     {{#Source}}
     <div class="sourceBox">
       <b>Source:</b> {{Source}}
@@ -33,6 +42,10 @@
         <div class="check-box">
           <label for="Shuffling">Shuffling</label>
           <input id="Shuffling" type="checkbox">
+        </div>
+        <div id="shortAnswerBoxSwitch" class="check-box">
+          <label for="ShortAnswerBox">Answer box</label>
+          <input id="ShortAnswerBox" type="checkbox">
         </div>
       </div>
 
@@ -59,10 +72,17 @@ if (X == X.toLowerCase()) X = X.toUpperCase();
 
 Persistence.setItem("scroll", 0);
 Persistence.setItem("answer", "");
+Persistence.setItem("ShortAnswer", "");
 
 document.querySelectorAll('.option').forEach(div => {
   if (div.innerHTML === '') div.parentNode.remove();
 });
+
+var tagBox = document.getElementById("tagBox");
+var tagDisplay = document.getElementById("tagDisplay");
+if(tagBox && tagDisplay && tagDisplay.textContent.trim() === ""){
+  tagBox.style.display = "none";
+}
 
 var container = document.getElementsByClassName("container");
 var DefElems = document.querySelectorAll('#shuffle > div');
@@ -139,6 +159,46 @@ var canShuffleOptions = !isShortAnswer && !isTrueFalse;
 
 Persistence.setItem("IsShortAnswer", isShortAnswer);
 Persistence.setItem("ShuffleCurrent", false);
+
+if(Persistence.getItem("ShortAnswerBoxEnabled") == null){
+  Persistence.setItem("ShortAnswerBoxEnabled", false);
+}
+
+function isShortAnswerBoxEnabled(){
+  return Persistence.getItem("ShortAnswerBoxEnabled") === true;
+}
+
+function renderShortAnswerBox(){
+  var box = document.getElementById("shortAnswerBox");
+  var switchWrap = document.getElementById("shortAnswerBoxSwitch");
+  var switchInput = document.getElementById("ShortAnswerBox");
+  var enabled = isShortAnswer && isShortAnswerBoxEnabled();
+
+  if(switchWrap) switchWrap.style.display = isShortAnswer ? "flex" : "none";
+  if(switchInput){
+    switchInput.checked = enabled;
+    switchInput.disabled = !isShortAnswer;
+  }
+  if(box) box.style.display = enabled ? "block" : "none";
+}
+
+var shortAnswerInput = document.getElementById("shortAnswerInput");
+if(shortAnswerInput){
+  shortAnswerInput.value = "";
+  shortAnswerInput.addEventListener("input", function(){
+    Persistence.setItem("ShortAnswer", shortAnswerInput.value);
+  });
+}
+
+var shortAnswerBoxToggle = document.getElementById("ShortAnswerBox");
+if(shortAnswerBoxToggle){
+  shortAnswerBoxToggle.addEventListener("click", function(){
+    Persistence.setItem("ShortAnswerBoxEnabled", shortAnswerBoxToggle.checked);
+    renderShortAnswerBox();
+    if(shortAnswerBoxToggle.checked && shortAnswerInput) shortAnswerInput.focus();
+  });
+}
+renderShortAnswerBox();
 
 if(Persistence.getItem("Zoom") == null){ Persistence.setItem("Zoom", 1); }
 var zoom = Persistence.getItem("Zoom");
