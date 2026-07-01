@@ -1,6 +1,6 @@
 # Exam Simulator - NB
 
-An Anki add-on that turns your MCQ note bank into a proper exam-style simulation workflow.
+An Anki add-on that turns your question bank into a proper exam-style simulation workflow.
 
 Instead of reviewing questions one by one in normal Anki mode, you can build custom exams, filter your question pool, apply timing and scoring rules, sit the exam in a dedicated interface, and review your performance afterward.
 
@@ -16,7 +16,7 @@ That is what this add-on is for.
 
 Exam Simulator - NB lets you:
 
-- build custom exams from your Anki MCQ notes
+- build custom exams from your Anki notes
 - filter questions by deck, tags, simulation history, and flags
 - choose a fixed question count
 - build tag-based question type compositions, such as single-choice first and multi-choice second
@@ -75,6 +75,11 @@ Tag composition presets are stored locally in the current Anki profile and can b
 - timer support
 - zoom controls
 - quick navigation between answer sheet and questions
+
+### Card Template
+- supports short-answer cards with a built-in response box
+- defaults to shuffled options on the card front when the card has choices
+- preserves the existing single-choice / multi-choice visual cues
 
 ### Scoring Modes
 - **All or Nothing**
@@ -195,10 +200,10 @@ It does not require a server, account, or external backend.
 
 ## Known Limitations
 
-- currently designed around a specific MCQ field structure
-- best suited for note types that follow the expected field names
+- currently designed around the expected field names below
+- supports both choice questions and short-answer questions
 - not intended to be a universal quiz engine for arbitrary note schemas
-- answer choice order is not currently randomized
+- answer choice order is still template-driven rather than re-randomized by the launcher
 
 ## Roadmap
 

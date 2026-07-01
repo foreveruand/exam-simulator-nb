@@ -2,6 +2,8 @@
 Scoring engine + results HTML builder.
 """
 
+from html import escape
+
 # ── Flag definitions ──────────────────────────────────────────────────────────
 FLAG_COLORS = {
     1: ("#ef4444", "Red"),
@@ -37,6 +39,29 @@ def compute_score(questions, answers_dict, scoring):
     total_possible = 0.0
 
     for i, q in enumerate(questions):
+        if q.get("answer_mode") == "short":
+            chosen_text = answers_dict.get(str(i), "")
+            if not isinstance(chosen_text, str):
+                chosen_text = ""
+            chosen_text = chosen_text.strip()
+            status = "manual" if chosen_text else "skipped"
+            question_results.append({
+                "index": i,
+                "question": q["question"],
+                "options": q["options"],
+                "correct": [],
+                "chosen": [],
+                "chosen_text": chosen_text,
+                "correct_text": q.get("correct_text", ""),
+                "answer_mode": "short",
+                "status": status,
+                "earned": 0.0,
+                "possible": 0.0,
+                "nid": q.get("nid", ""),
+                "explanation": q.get("explanation", ""),
+            })
+            continue
+
         correct_set = set(q["correct"])
         chosen_set = set(answers_dict.get(str(i), []))
 
@@ -91,6 +116,9 @@ def compute_score(questions, answers_dict, scoring):
             "options": q["options"],
             "correct": sorted(correct_set),
             "chosen": sorted(chosen_set),
+            "chosen_text": "",
+            "correct_text": "",
+            "answer_mode": q.get("answer_mode", ""),
             "status": status,
             "earned": earned,
             "possible": possible,
@@ -116,6 +144,7 @@ def compute_score(questions, answers_dict, scoring):
         "n_partial": sum(1 for r in question_results if r["status"] == "partial"),
         "n_wrong": sum(1 for r in question_results if r["status"] == "wrong"),
         "n_skipped": sum(1 for r in question_results if r["status"] == "skipped"),
+        "n_manual": sum(1 for r in question_results if r["status"] == "manual"),
     }
 
 
@@ -150,12 +179,14 @@ def build_results_html(results):
             "partial": "#d97706",
             "wrong": "#dc2626",
             "skipped": "#64748b",
+            "manual": "#2563eb",
         }
         status_symbols = {
             "correct": "✓",
             "partial": "~",
             "wrong": "✗",
             "skipped": "?",
+            "manual": "R",
         }
         sc = status_colors.get(r["status"], "#64748b")
         sym = status_symbols.get(r["status"], "?")
@@ -168,21 +199,38 @@ def build_results_html(results):
         )
 
         opts_html = ""
-        for letter, text in r["options"].items():
-            is_correct = letter in r["correct"]
-            is_chosen = letter in r["chosen"]
-            classes = ["res-opt"]
-            if is_correct:
-                classes.append("opt-correct")
-            if is_chosen and not is_correct:
-                classes.append("opt-wrong")
-            if is_chosen:
-                classes.append("opt-chosen")
-            opts_html += (
-                f'<div class="{" ".join(classes)}">'
-                f'<b class="res-letter">{letter}.</b> {text}'
+        if r.get("answer_mode") == "short":
+            chosen_text = escape(r.get("chosen_text", "")) or "No answer entered"
+            ref_answer = escape(r.get("correct_text", ""))
+            opts_html = (
+                f'<div class="short-answer-res {"short-answer-empty" if not r.get("chosen_text", "") else ""}">'
+                f'<div class="short-answer-label">Your answer</div>'
+                f'<div class="short-answer-text">{chosen_text}</div>'
                 f'</div>'
             )
+            if ref_answer:
+                opts_html += (
+                    f'<div class="short-answer-res short-answer-reference">'
+                    f'<div class="short-answer-label">Reference answer</div>'
+                    f'<div class="short-answer-text">{ref_answer}</div>'
+                    f'</div>'
+                )
+        else:
+            for letter, text in r["options"].items():
+                is_correct = letter in r["correct"]
+                is_chosen = letter in r["chosen"]
+                classes = ["res-opt"]
+                if is_correct:
+                    classes.append("opt-correct")
+                if is_chosen and not is_correct:
+                    classes.append("opt-wrong")
+                if is_chosen:
+                    classes.append("opt-chosen")
+                opts_html += (
+                    f'<div class="{" ".join(classes)}">'
+                    f'<b class="res-letter">{letter}.</b> {text}'
+                    f'</div>'
+                )
 
         expl_html = ""
         if r.get("explanation"):
@@ -508,6 +556,35 @@ tr.row-hidden {{ display: none; }}
   border-color: rgba(59,130,246,0.95) !important;
   box-shadow: inset 0 0 0 2px rgba(59,130,246,0.75) !important;
 }}
+.short-answer-res {{
+  margin: 8px 0;
+  padding: 10px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #f8fafc;
+}}
+.short-answer-reference {{
+  background: #eff6ff;
+  border-color: #bfdbfe;
+}}
+.short-answer-label {{
+  margin-bottom: 4px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  color: #475569;
+}}
+.short-answer-text {{
+  white-space: pre-wrap;
+  font-size: 13px;
+  line-height: 1.55;
+  color: #0f172a;
+}}
+.short-answer-empty .short-answer-text {{
+  color: #64748b;
+  font-style: italic;
+}}
 
 .expl-wrap {{ margin-top: 10px; border-top: 1px dashed #e2e8f0; padding-top: 8px; }}
 .expl-toggle {{
@@ -578,6 +655,10 @@ tr.row-hidden {{ display: none; }}
   <div class="stat-box" onclick="filterRows('skipped')" style="color:#64748b;">
     <svg width="18" height="18" viewBox="0 0 22 22"><circle cx="11" cy="11" r="11" fill="#64748b"/><text x="11" y="16" text-anchor="middle" font-size="13" font-weight="bold" fill="white" font-family="Arial">?</text></svg>
     <span class="stat-num" style="color:#64748b;">{results["n_skipped"]}</span> Skipped
+  </div>
+  <div class="stat-box" onclick="filterRows('manual')" style="color:#2563eb;">
+    <svg width="18" height="18" viewBox="0 0 22 22"><circle cx="11" cy="11" r="11" fill="#2563eb"/><text x="11" y="16" text-anchor="middle" font-size="12" font-weight="bold" fill="white" font-family="Arial">R</text></svg>
+    <span class="stat-num" style="color:#2563eb;">{results["n_manual"]}</span> Review
   </div>
 </div>
 

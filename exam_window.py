@@ -252,13 +252,20 @@ function renderQuestions() {{
     block.className = "q-block";
     block.id        = "qblock-" + i;
     let opts = "";
-    for (const [l, t] of Object.entries(q.options))
-      opts += `
-        <button type="button" class="q-opt" id="opt-${{i}}-${{l}}" onclick="toggle(${{i}},'${{l}}')">
-          <span class="opt-box" id="mark-${{i}}-${{l}}"></span>
-          <span class="opt-letter">${{l}}.</span>
-          <span class="opt-text">${{t}}</span>
-        </button>`;
+    if (q.answer_mode === "short") {{
+      opts = `
+        <textarea class="short-answer-input" id="short-${{i}}" rows="6"
+          placeholder="Type your answer here"
+          oninput="setShortAnswer(${{i}}, this.value)"></textarea>`;
+    }} else {{
+      for (const [l, t] of Object.entries(q.options))
+        opts += `
+          <button type="button" class="q-opt" id="opt-${{i}}-${{l}}" onclick="toggle(${{i}},'${{l}}')">
+            <span class="opt-box" id="mark-${{i}}-${{l}}"></span>
+            <span class="opt-letter">${{l}}.</span>
+            <span class="opt-text">${{t}}</span>
+          </button>`;
+    }}
     const src = q.source ? `<div class="q-source">Source: ${{q.source}}</div>` : "";
     block.innerHTML = `
       <div class="q-header">
@@ -268,6 +275,23 @@ function renderQuestions() {{
       <div class="q-opts">${{opts}}</div>${{src}}`;
     c.appendChild(block);
   }});
+}}
+
+function isAnswered(value) {{
+  if (value instanceof Set) return value.size > 0;
+  return typeof value === "string" && value.trim().length > 0;
+}}
+
+function updateQuestionStatus(qi) {{
+  const statusCell = document.getElementById(`status-${{qi}}`);
+  if (statusCell) statusCell.classList.toggle("status-done", isAnswered(answers[qi]));
+  document.getElementById("ans-count").textContent =
+    Object.values(answers).filter(isAnswered).length;
+}}
+
+function setShortAnswer(qi, value) {{
+  answers[qi] = value;
+  updateQuestionStatus(qi);
 }}
 
 /* ── Status navigator ───────────────────────────────────────────────────── */
@@ -288,8 +312,10 @@ function renderStatusGrid() {{
 function toggle(qi, l) {{
   if (!answers[qi]) answers[qi] = new Set();
   const s  = answers[qi];
+  if (!(s instanceof Set)) answers[qi] = new Set();
   const q = QUESTIONS[qi] || {{}};
   const answerMode = q.answer_mode || ((q.correct || []).length > 1 ? "multi" : "single");
+  const choiceSet = answers[qi];
 
   function setOptionState(letter, selected) {{
     const opt = document.getElementById(`opt-${{qi}}-${{letter}}`);
@@ -304,21 +330,18 @@ function toggle(qi, l) {{
     }}
   }}
 
-  if (s.has(l)) {{
-    s.delete(l);
+  if (choiceSet.has(l)) {{
+    choiceSet.delete(l);
     setOptionState(l, false);
   }} else {{
     if (answerMode !== "multi") {{
-      Array.from(s).forEach(prev => setOptionState(prev, false));
-      s.clear();
+      Array.from(choiceSet).forEach(prev => setOptionState(prev, false));
+      choiceSet.clear();
     }}
-    s.add(l);
+    choiceSet.add(l);
     setOptionState(l, true);
   }}
-  const statusCell = document.getElementById(`status-${{qi}}`);
-  if (statusCell) statusCell.classList.toggle("status-done", s.size > 0);
-  document.getElementById("ans-count").textContent =
-    Object.values(answers).filter(s=>s&&s.size>0).length;
+  updateQuestionStatus(qi);
 }}
 
 function scrollToQ(i) {{
@@ -362,7 +385,7 @@ function modalOk()     {{ document.getElementById("modal-overlay").style.display
 function modalCancel() {{ document.getElementById("modal-overlay").style.display="none"; if(_modalResolve) _modalResolve(false); }}
 
 async function askSubmit() {{
-  const done      = Object.values(answers).filter(s=>s&&s.size>0).length;
+  const done      = Object.values(answers).filter(isAnswered).length;
   const remaining = N - done;
   if (remaining > 0) {{
     const ok = await showModal(`${{remaining}} question(s) still unanswered. Submit anyway?`);
@@ -375,8 +398,10 @@ function doSubmit() {{
   if (timerInterval) clearInterval(timerInterval);
   const payload = {{}};
   Object.keys(answers).forEach(k => {{
-    if (answers[k] && answers[k].size > 0)
+    if (answers[k] instanceof Set && answers[k].size > 0)
       payload[k] = Array.from(answers[k]).sort();
+    else if (typeof answers[k] === "string" && answers[k].trim())
+      payload[k] = answers[k];
   }});
   document.getElementById("submit-btn").disabled    = true;
   document.getElementById("submit-btn").textContent = "Grading…";
@@ -487,6 +512,24 @@ body {
 .q-opt-on .opt-box { border-color: #1d4ed8; color: #0f172a; }
 .opt-letter { font-weight: bold; flex-shrink: 0; min-width: 18px; }
 .opt-text   { color: #111; flex: 1; }
+.short-answer-input {
+  width: 100%;
+  min-height: 130px;
+  resize: vertical;
+  padding: 10px 12px;
+  border: 1px solid #9ca3af;
+  border-radius: 4px;
+  font-family: "Times New Roman", Times, serif;
+  font-size: .96em;
+  line-height: 1.6;
+  color: #111;
+  background: #fff;
+}
+.short-answer-input:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37,99,235,.14);
+}
 .q-source   { margin-top: 10px; padding-left: 22px; font-size: .85em; font-style: italic; color: #555; }
 
 /* Right panel / status navigator */

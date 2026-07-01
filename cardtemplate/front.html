@@ -157,6 +157,10 @@ var isMultiSelect = !isShortAnswer && !isSingleSelect && (
 );
 var canShuffleOptions = !isShortAnswer && !isTrueFalse;
 
+if(!isShortAnswer && !isMultiSelect){
+  document.getElementById("shuffle").classList.add("single-select");
+}
+
 Persistence.setItem("IsShortAnswer", isShortAnswer);
 Persistence.setItem("ShuffleCurrent", false);
 
@@ -319,7 +323,7 @@ function HandleShufflingBox(){
 }
 
 if(Persistence.getItem("ShufflingBox") == null){
-  Persistence.setItem("ShufflingBox", false);
+  Persistence.setItem("ShufflingBox", true);
 }
 
 for (var i = 1; i < container.length+1; i++) {

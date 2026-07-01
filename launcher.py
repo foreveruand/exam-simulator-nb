@@ -36,6 +36,10 @@ SINGLE_SELECT_TAGS = {
 TRUE_FALSE_TAGS = {
     "true-false", "truefalse", "tf", "判断", "是非",
 }
+SHORT_ANSWER_TAGS = {
+    "short-answer", "shortanswer", "free-text", "freetext",
+    "essay", "简答", "简答题",
+}
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -73,6 +77,8 @@ def _is_true_false_question(question):
 
 
 def _answer_mode(correct, tag_tokens):
+    if tag_tokens & SHORT_ANSWER_TAGS:
+        return "short"
     if tag_tokens & (SINGLE_SELECT_TAGS | TRUE_FALSE_TAGS):
         return "single"
     if tag_tokens & MULTI_SELECT_TAGS:
@@ -98,9 +104,32 @@ def _parse_note(note, note_type_name):
                     options[letter] = val
             except Exception:
                 pass
-        if not options:
-            return None
         raw_ans = note["Ans"].strip().upper()
+        raw_answer_text = note["Ans"].strip()
+        tag_tokens = _note_tag_tokens(note)
+        if not options:
+            if not raw_answer_text:
+                return None
+            source = ""
+            try:
+                source = _strip_html(note["Source"].strip())
+            except Exception:
+                pass
+            explanation = ""
+            try:
+                explanation = note["Explanation"].strip()   # keep HTML for rendering
+            except Exception:
+                pass
+            return {
+                "question":      question,
+                "options":       {},
+                "correct":       [],
+                "correct_text":  raw_answer_text,
+                "source":        source,
+                "explanation":   explanation,
+                "answer_mode":   "short",
+                "is_true_false": False,
+            }
         correct = set()
         for ch in raw_ans:
             if ch in "ABCDE":
@@ -120,7 +149,6 @@ def _parse_note(note, note_type_name):
             explanation = note["Explanation"].strip()   # keep HTML for rendering
         except Exception:
             pass
-        tag_tokens = _note_tag_tokens(note)
         parsed = {
             "question":    question,
             "options":     options,
@@ -186,6 +214,8 @@ def _tagged_sample(note_ids, note_meta, rules, shuffle_groups=False):
 
 
 def _shuffle_question_options(question):
+    if question.get("answer_mode") == "short":
+        return
     if question.get("is_true_false"):
         return
     items = list(question["options"].items())
@@ -896,21 +926,27 @@ class CardPickerDialog(QDialog):
             layout.insertWidget(
                 layout.count() - 1, lbl(q["question"], bold=True, size=14)
             )
-            for letter, text in q["options"].items():
-                row = QWidget()
-                rh = QHBoxLayout(row)
-                rh.setContentsMargins(4, 0, 0, 0)
-                rh.setSpacing(8)
-                ll = QLabel(f"{letter}.")
-                ll.setStyleSheet("font-weight:bold;font-size:13px;")
-                ll.setFixedWidth(22)
-                lt = QLabel(text)
-                lt.setWordWrap(True)
-                lt.setStyleSheet("font-size:13px;")
-                lt.setTextFormat(Qt.TextFormat.PlainText)
-                rh.addWidget(ll)
-                rh.addWidget(lt, 1)
-                layout.insertWidget(layout.count() - 1, row)
+            if q.get("answer_mode") == "short":
+                layout.insertWidget(
+                    layout.count() - 1,
+                    lbl("Short answer question", size=12, italic=True, color="#64748b")
+                )
+            else:
+                for letter, text in q["options"].items():
+                    row = QWidget()
+                    rh = QHBoxLayout(row)
+                    rh.setContentsMargins(4, 0, 0, 0)
+                    rh.setSpacing(8)
+                    ll = QLabel(f"{letter}.")
+                    ll.setStyleSheet("font-weight:bold;font-size:13px;")
+                    ll.setFixedWidth(22)
+                    lt = QLabel(text)
+                    lt.setWordWrap(True)
+                    lt.setStyleSheet("font-size:13px;")
+                    lt.setTextFormat(Qt.TextFormat.PlainText)
+                    rh.addWidget(ll)
+                    rh.addWidget(lt, 1)
+                    layout.insertWidget(layout.count() - 1, row)
             if q.get("source"):
                 src_w = QLabel(f"📚  {q['source']}")
                 src_w.setWordWrap(True)
