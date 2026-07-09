@@ -25,6 +25,15 @@
     </div>
     {{/Source}}
 
+    <div id="short-answer-section" style="display:none">
+      <div id="short-answer-header" class="header header-yellow" onclick="$('#short-answer').toggle(100)">
+        Answer
+      </div>
+      <div id="short-answer" class="content">
+        <div>{{Ans}}</div>
+      </div>
+    </div>
+    
     <div id="extra-section">
       <div id="extra-header" class="header header-yellow" onclick="$('#extra').toggle(100)">
         Explanation
@@ -33,6 +42,7 @@
         <div>{{Explanation}}</div>
       </div>
     </div>
+
   </div>
 
   <div id="settings">
@@ -137,11 +147,10 @@ var Y = Number(X);
 var correctSet = {};
 
 if(isShortAnswer){
-  var answerHtml = document.getElementById("answerData").innerHTML;
-  if(answerHtml){
-    $("#extra-header").text("Answer");
-    $("#extra-header").show();
-    $("#extra").html("<div>" + answerHtml + "</div>");
+  var shortAnswerSection = document.getElementById("short-answer-section");
+  var shortAnswerContent = document.getElementById("short-answer");
+  if(shortAnswerSection && shortAnswerContent && shortAnswerContent.textContent.trim()){
+    shortAnswerSection.style.display = "block";
   }
 } else if(isNaN(Y)){
   X.split('').forEach(function(ch){
